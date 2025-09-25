@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Unique Number Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .generator-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .generate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .qr-container {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .qr-code {
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .number-info {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .instructions {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 30px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            color: #856404;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        .magic-info {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .magic-info h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .magic-info p {
+            color: #1976d2;
+            margin-bottom: 5px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .stats-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🎯 QR Unique Number Generator</h1>
+            <p class="subtitle">Generate QR codes that display unique numbers when scanned</p>
+        </div>
+        
+        <div class="generator-section">
+            <button id="generateBtn" class="generate-btn">Generate QR Code</button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Generating unique number and QR code...</p>
+            </div>
+            
+            <div id="qrContainer" class="qr-container" style="display: none;">
+                <h3>Scan this QR code with your mobile device:</h3>
+                <img id="qrCode" class="qr-code" alt="QR Code">
+                <div class="number-info">
+                    <p>🔮 <strong>Magic QR Code!</strong></p>
+                    <p>The unique number will be generated when someone scans this QR code.</p>
+                    <p>URL: <span id="generatedUrl"></span></p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="statsSection" class="stats-section">
+            <div class="stat-card">
+                <div id="usedCount" class="stat-number">0</div>
+                <div class="stat-label">Numbers Used</div>
+            </div>
+            <div class="stat-card">
+                <div id="remainingCount" class="stat-number">10,000</div>
+                <div class="stat-label">Numbers Remaining</div>
+            </div>
+            <div class="stat-card">
+                <div id="percentage" class="stat-number">0%</div>
+                <div class="stat-label">Used Percentage</div>
+            </div>
+        </div>
+        
+        <div class="magic-info">
+            <h4>🎯 How It Works:</h4>
+            <p>• <strong>Generate QR Code:</strong> Creates a "magic" QR code (no number yet!)</p>
+            <p>• <strong>Scan QR Code:</strong> When scanned, it generates a unique number instantly</p>
+            <p>• <strong>One-Time Use:</strong> Each scan creates a brand new, never-repeated number</p>
+            <p>• <strong>Perfect for Events:</strong> Everyone gets their own unique number when they scan!</p>
+        </div>
+        
+        <div class="instructions">
+            <h3>📱 How to Use:</h3>
+            <ol>
+                <li>Click "Generate QR Code" to create a magic QR code</li>
+                <li>Share the QR code with others or scan it yourself</li>
+                <li>When scanned, a unique number is generated instantly on the mobile screen</li>
+                <li>Each scan produces a different number that will never be repeated</li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const generateBtn = document.getElementById('generateBtn');
+        const loading = document.getElementById('loading');
+        const qrContainer = document.getElementById('qrContainer');
+        const qrCode = document.getElementById('qrCode');
+        const generatedUrl = document.getElementById('generatedUrl');
+        const usedCount = document.getElementById('usedCount');
+        const remainingCount = document.getElementById('remainingCount');
+        const percentage = document.getElementById('percentage');
+
+        // Initialize WebSocket connection for real-time updates
+        const socket = io();
+        
+        // Listen for real-time statistics updates
+        socket.on('statsUpdate', (stats) => {
+            usedCount.textContent = stats.usedCount.toLocaleString();
+            remainingCount.textContent = stats.remainingCount.toLocaleString();
+            percentage.textContent = stats.percentage + '%';
+        });
+
+        // Load initial stats
+        loadStats();
+
+        generateBtn.addEventListener('click', generateQR);
+
+        async function generateQR() {
+            generateBtn.disabled = true;
+            loading.style.display = 'block';
+            qrContainer.style.display = 'none';
+            
+            try {
+                const response = await fetch('/generate-qr');
+                const data = await response.json();
+                
+                if (data.success) {
+                    qrCode.src = data.qrCode;
+                    generatedUrl.textContent = data.url;
+                    qrContainer.style.display = 'block';
+                    
+                    // Update stats
+                    usedCount.textContent = data.usedCount.toLocaleString();
+                    remainingCount.textContent = data.remainingCount.toLocaleString();
+                    percentage.textContent = ((data.usedCount / (data.usedCount + data.remainingCount)) * 100).toFixed(1) + '%';
+                    
+                    // Show success message
+                    showSuccess(data.message || 'Magic QR code generated! Numbers will be created when scanned.');
+                } else {
+                    showError(data.error || 'Failed to generate QR code');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            }
+            
+            generateBtn.disabled = false;
+            loading.style.display = 'none';
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/stats');
+                const data = await response.json();
+                
+                usedCount.textContent = data.usedCount.toLocaleString();
+                remainingCount.textContent = data.remainingCount.toLocaleString();
+                percentage.textContent = data.percentage + '%';
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            
+            const container = document.querySelector('.generator-section');
+            const existingError = container.querySelector('.error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            container.insertBefore(errorDiv, container.firstChild);
+            
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            
+            const container = document.querySelector('.generator-section');
+            const existingSuccess = container.querySelector('.success');
+            if (existingSuccess) {
+                existingSuccess.remove();
+            }
+            
+            container.insertBefore(successDiv, container.firstChild);
+            
+            setTimeout(() => {
+                successDiv.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+
