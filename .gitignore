@@ -1,0 +1,8 @@
+node_modules/
+*.log
+.DS_Store
+usedNumbers.json
+.env
+.env.local
+.env.production
+.env.development
