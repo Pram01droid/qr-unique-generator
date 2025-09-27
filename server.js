@@ -31,6 +31,7 @@ const CONFIG = {
 
 // Load used numbers from file or initialize empty set
 let usedNumbers = new Set();
+let usedNumbersByRange = new Map(); // Track used numbers by range
 
 try {
   if (fs.existsSync(CONFIG.usedNumbersFile)) {
@@ -77,18 +78,38 @@ function broadcastStats() {
 }
 
 // Generate unique number
-function generateUniqueNumber() {
-  const availableNumbers = CONFIG.maxRange - CONFIG.minRange + 1 - usedNumbers.size;
+function generateUniqueNumber(customMinRange = null, customMaxRange = null) {
+  const minRange = customMinRange || CONFIG.minRange;
+  const maxRange = customMaxRange || CONFIG.maxRange;
+  
+  // For custom ranges, we need to track them separately
+  // Create a unique key for this range
+  const rangeKey = `${minRange}-${maxRange}`;
+  
+  // Get or create used numbers set for this range
+  if (!usedNumbersByRange) {
+    usedNumbersByRange = new Map();
+  }
+  
+  if (!usedNumbersByRange.has(rangeKey)) {
+    usedNumbersByRange.set(rangeKey, new Set());
+  }
+  
+  const rangeUsedNumbers = usedNumbersByRange.get(rangeKey);
+  const availableNumbers = maxRange - minRange + 1 - rangeUsedNumbers.size;
   
   if (availableNumbers <= 0) {
-    throw new Error('All numbers in range have been used');
+    throw new Error(`All numbers in range ${minRange}-${maxRange} have been used`);
   }
   
   let randomNumber;
   do {
-    randomNumber = Math.floor(Math.random() * (CONFIG.maxRange - CONFIG.minRange + 1)) + CONFIG.minRange;
-  } while (usedNumbers.has(randomNumber));
+    randomNumber = Math.floor(Math.random() * (maxRange - minRange + 1)) + minRange;
+  } while (rangeUsedNumbers.has(randomNumber));
   
+  rangeUsedNumbers.add(randomNumber);
+  
+  // Also add to global used numbers for statistics
   usedNumbers.add(randomNumber);
   saveUsedNumbers();
   
@@ -108,7 +129,17 @@ app.get('/generate-qr', async (req, res) => {
   try {
     // Use the request host for dynamic URL generation
     const baseUrl = req.get('host') ? `${req.protocol}://${req.get('host')}` : `http://192.168.0.102:${PORT}`;
-    const qrData = `${baseUrl}/scan`;
+    
+    // Handle custom range parameters
+    const customMinRange = parseInt(req.query.minRange);
+    const customMaxRange = parseInt(req.query.maxRange);
+    
+    let scanUrl = `${baseUrl}/scan`;
+    if (customMinRange && customMaxRange) {
+      scanUrl += `?minRange=${customMinRange}&maxRange=${customMaxRange}`;
+    }
+    
+    const qrData = scanUrl;
     
     const qrCodeDataURL = await QRCode.toDataURL(qrData, {
       width: 300,
@@ -126,7 +157,10 @@ app.get('/generate-qr', async (req, res) => {
       usedCount: usedNumbers.size,
       remainingCount: CONFIG.maxRange - CONFIG.minRange + 1 - usedNumbers.size,
       message: "Number will be generated when QR code is scanned",
-      baseUrl: baseUrl
+      baseUrl: baseUrl,
+      range: customMinRange && customMaxRange ? 
+        { min: customMinRange, max: customMaxRange } : 
+        { min: CONFIG.minRange, max: CONFIG.maxRange }
     });
   } catch (error) {
     res.status(500).json({
@@ -139,7 +173,20 @@ app.get('/generate-qr', async (req, res) => {
 // Generate unique number when QR code is scanned
 app.get('/scan', (req, res) => {
   try {
-    const uniqueNumber = generateUniqueNumber();
+    // Check for custom range parameters
+    const customMinRange = parseInt(req.query.minRange);
+    const customMaxRange = parseInt(req.query.maxRange);
+    
+    let uniqueNumber;
+    if (customMinRange && customMaxRange) {
+      // Validate custom range
+      if (customMinRange >= customMaxRange || customMaxRange - customMinRange + 1 > 100000) {
+        return res.status(400).send('Invalid range parameters');
+      }
+      uniqueNumber = generateUniqueNumber(customMinRange, customMaxRange);
+    } else {
+      uniqueNumber = generateUniqueNumber();
+    }
     
     const html = `
       <!DOCTYPE html>

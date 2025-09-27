@@ -173,6 +173,105 @@
             margin-bottom: 5px;
         }
         
+        .range-selector {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .range-selector h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+        
+        .range-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .range-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 10px;
+            transition: background-color 0.2s;
+        }
+        
+        .range-option:hover {
+            background: #e9ecef;
+        }
+        
+        .range-option input[type="radio"] {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+        
+        .radio-label {
+            font-size: 1.1rem;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .custom-range-inputs {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .range-input-group {
+            margin-bottom: 15px;
+        }
+        
+        .range-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .range-input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        
+        .range-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .range-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+            margin-top: 10px;
+        }
+        
         .loading {
             display: none;
             text-align: center;
@@ -235,6 +334,30 @@
         </div>
         
         <div class="generator-section">
+            <div class="range-selector">
+                <h3>📊 Number Range Settings</h3>
+                <div class="range-options">
+                    <label class="range-option">
+                        <input type="radio" name="rangeType" value="random" checked>
+                        <span class="radio-label">🎲 Random Range (1-10,000)</span>
+                    </label>
+                    <label class="range-option">
+                        <input type="radio" name="rangeType" value="custom">
+                        <span class="radio-label">⚙️ Custom Range</span>
+                    </label>
+                </div>
+                <div id="customRangeInputs" class="custom-range-inputs" style="display: none;">
+                    <div class="range-input-group">
+                        <label for="minRange">Minimum Number:</label>
+                        <input type="number" id="minRange" value="1" min="1" max="999999">
+                    </div>
+                    <div class="range-input-group">
+                        <label for="maxRange">Maximum Number:</label>
+                        <input type="number" id="maxRange" value="10000" min="1" max="999999">
+                    </div>
+                    <div id="rangeError" class="range-error" style="display: none;"></div>
+                </div>
+            </div>
             <button id="generateBtn" class="generate-btn">Generate QR Code</button>
             
             <div class="loading" id="loading">
@@ -248,6 +371,7 @@
                 <div class="number-info">
                     <p>🔮 <strong>Magic QR Code!</strong></p>
                     <p>The unique number will be generated when someone scans this QR code.</p>
+                    <p><strong>Range:</strong> <span id="generatedRange"></span></p>
                     <p>URL: <span id="generatedUrl"></span></p>
                 </div>
             </div>
@@ -294,6 +418,7 @@
         const qrContainer = document.getElementById('qrContainer');
         const qrCode = document.getElementById('qrCode');
         const generatedUrl = document.getElementById('generatedUrl');
+        const generatedRange = document.getElementById('generatedRange');
         const usedCount = document.getElementById('usedCount');
         const remainingCount = document.getElementById('remainingCount');
         const percentage = document.getElementById('percentage');
@@ -311,6 +436,55 @@
         // Load initial stats
         loadStats();
 
+        // Range selection functionality
+        const rangeTypeRadios = document.querySelectorAll('input[name="rangeType"]');
+        const customRangeInputs = document.getElementById('customRangeInputs');
+        const minRangeInput = document.getElementById('minRange');
+        const maxRangeInput = document.getElementById('maxRange');
+        const rangeError = document.getElementById('rangeError');
+
+        // Show/hide custom range inputs based on selection
+        rangeTypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'custom') {
+                    customRangeInputs.style.display = 'block';
+                } else {
+                    customRangeInputs.style.display = 'none';
+                    rangeError.style.display = 'none';
+                }
+            });
+        });
+
+        // Validate range inputs
+        function validateRange() {
+            const min = parseInt(minRangeInput.value);
+            const max = parseInt(maxRangeInput.value);
+            
+            if (min >= max) {
+                rangeError.textContent = 'Minimum number must be less than maximum number';
+                rangeError.style.display = 'block';
+                return false;
+            }
+            
+            if (max - min + 1 < 1) {
+                rangeError.textContent = 'Range must include at least 1 number';
+                rangeError.style.display = 'block';
+                return false;
+            }
+            
+            if (max - min + 1 > 100000) {
+                rangeError.textContent = 'Range cannot exceed 100,000 numbers';
+                rangeError.style.display = 'block';
+                return false;
+            }
+            
+            rangeError.style.display = 'none';
+            return true;
+        }
+
+        minRangeInput.addEventListener('input', validateRange);
+        maxRangeInput.addEventListener('input', validateRange);
+
         generateBtn.addEventListener('click', generateQR);
 
         async function generateQR() {
@@ -318,13 +492,35 @@
             loading.style.display = 'block';
             qrContainer.style.display = 'none';
             
+            // Get range settings
+            const selectedRangeType = document.querySelector('input[name="rangeType"]:checked').value;
+            let rangeParams = {};
+            
+            if (selectedRangeType === 'custom') {
+                if (!validateRange()) {
+                    generateBtn.disabled = false;
+                    loading.style.display = 'none';
+                    return;
+                }
+                rangeParams = {
+                    minRange: parseInt(minRangeInput.value),
+                    maxRange: parseInt(maxRangeInput.value)
+                };
+            }
+            
             try {
-                const response = await fetch('/generate-qr');
+                const url = new URL('/generate-qr', window.location.origin);
+                Object.keys(rangeParams).forEach(key => 
+                    url.searchParams.append(key, rangeParams[key])
+                );
+                
+                const response = await fetch(url);
                 const data = await response.json();
                 
                 if (data.success) {
                     qrCode.src = data.qrCode;
                     generatedUrl.textContent = data.url;
+                    generatedRange.textContent = `${data.range.min.toLocaleString()} - ${data.range.max.toLocaleString()}`;
                     qrContainer.style.display = 'block';
                     
                     // Update stats
